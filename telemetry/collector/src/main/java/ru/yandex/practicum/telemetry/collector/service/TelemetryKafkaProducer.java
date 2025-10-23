@@ -25,14 +25,14 @@ public class TelemetryKafkaProducer {
     }
 
     public void sendSensorEvent(SensorEventAvro event) {
-        String key = event.getHubId().toString();
+        String key = event.getHubId();
 
         kafkaTemplate.send(sensorTopic, key, event);
 
     }
 
     public void sendHubEvent(HubEventAvro event) {
-        String key = event.getHubId().toString();
+        String key = event.getHubId();
 
         kafkaTemplate.send(hubTopic, key, event);
     }
