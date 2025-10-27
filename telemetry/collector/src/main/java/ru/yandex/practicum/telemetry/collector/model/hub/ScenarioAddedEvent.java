@@ -2,10 +2,7 @@ package ru.yandex.practicum.telemetry.collector.model.hub;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import ru.yandex.practicum.telemetry.collector.model.enums.HubEventType;
 
 import java.util.List;
@@ -13,7 +10,9 @@ import java.util.List;
 @Getter
 @Setter
 @ToString(callSuper = true)
-@Builder
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class ScenarioAddedEvent extends HubEvent {
     @NotBlank
     private String name;

@@ -3,10 +3,7 @@ package ru.yandex.practicum.telemetry.collector.model.sensor;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import ru.yandex.practicum.telemetry.collector.model.enums.SensorEventType;
 
 import java.time.Instant;
@@ -27,6 +24,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @ToString
+@NoArgsConstructor
 public abstract class SensorEvent {
     @NotBlank
     private String id;
@@ -34,6 +32,5 @@ public abstract class SensorEvent {
     private String hubId;
     private Instant timestamp = Instant.now();
 
-    @NotNull
     public abstract SensorEventType getType();
 }

@@ -1,5 +1,6 @@
 package ru.yandex.practicum.telemetry.collector.service;
 
+import org.apache.avro.specific.SpecificRecordBase;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -8,18 +9,19 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 
 @Service
 public class TelemetryKafkaProducer {
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, SpecificRecordBase> kafkaTemplate;
 
     private final String hubTopic;
     private final String sensorTopic;
 
+
+
     public TelemetryKafkaProducer(
-            KafkaTemplate<String, Object> kafkaTemplate,
+            KafkaTemplate<String, SpecificRecordBase> kafkaTemplate,
             @Value("${kafka.topic.hub}") String hubTopic,
             @Value("${kafka.topic.sensor}") String sensorTopic
     ) {
         this.kafkaTemplate = kafkaTemplate;
-
         this.hubTopic = hubTopic;
         this.sensorTopic = sensorTopic;
     }

@@ -1,15 +1,14 @@
 package ru.yandex.practicum.telemetry.collector.model.sensor;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import ru.yandex.practicum.telemetry.collector.model.enums.SensorEventType;
 
 @Getter
 @Setter
 @ToString(callSuper = true)
-@Builder
+@Builder(toBuilder = true)
+@NoArgsConstructor
+@AllArgsConstructor
 public class LightSensorEvent extends SensorEvent {
     private int linkQuality;
     private int luminosity;
