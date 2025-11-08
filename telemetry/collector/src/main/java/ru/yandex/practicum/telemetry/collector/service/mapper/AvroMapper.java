@@ -37,7 +37,20 @@ public interface AvroMapper {
 
     ScenarioRemovedEventAvro toScenarioRemovedEventAvro(ScenarioRemovedEventProto scenarioRemovedEvent);
 
-    ScenarioConditionAvro toScenarioConditionAvro(ScenarioConditionProto scenarioCondition);
+    default Object mapScenarioConditionValue(ScenarioConditionProto proto) {
+        switch (proto.getValueCase()) {
+            case BOOL_VALUE:
+                return proto.getBoolValue();
+            case INT_VALUE:
+                return proto.getIntValue();
+            case VALUE_NOT_SET:
+            default:
+                return null; // Если ничего не установлено, возвращаем null (что корректно для Avro Union)
+        }
+    }
+
+    @Mapping(target = "value", source = "proto")
+    ScenarioConditionAvro toScenarioConditionAvro(ScenarioConditionProto proto);
 
     DeviceActionAvro toDeviceActionAvro(DeviceActionProto deviceAction);
 
