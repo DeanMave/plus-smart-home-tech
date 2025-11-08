@@ -31,6 +31,8 @@ public interface AvroMapper {
 
     DeviceRemovedEventAvro toDeviceRemovedEventAvro(DeviceRemovedEventProto deviceRemovedEvent);
 
+    @Mapping(source = "conditionList", target = "conditions")
+    @Mapping(source = "actionList", target = "actions")
     ScenarioAddedEventAvro toScenarioAddedEventAvro(ScenarioAddedEventProto scenarioAddedEvent);
 
     ScenarioRemovedEventAvro toScenarioRemovedEventAvro(ScenarioRemovedEventProto scenarioRemovedEvent);
