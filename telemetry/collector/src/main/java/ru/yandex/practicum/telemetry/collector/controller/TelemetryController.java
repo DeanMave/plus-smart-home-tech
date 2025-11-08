@@ -1,30 +1,78 @@
 package ru.yandex.practicum.telemetry.collector.controller;
 
-import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.telemetry.collector.service.TelemetryKafkaProducer;
-import ru.yandex.practicum.telemetry.collector.model.hub.HubEvent;
-import ru.yandex.practicum.telemetry.collector.model.sensor.SensorEvent;
-import ru.yandex.practicum.telemetry.collector.service.mapper.AvroMapper;
+import com.google.protobuf.Empty;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
+import net.devh.boot.grpc.server.service.GrpcService;
+import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
+import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
+import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
-@RestController
-@AllArgsConstructor
-@RequestMapping("/events")
-public class TelemetryController {
-    private AvroMapper mapper;
-    private TelemetryKafkaProducer producer;
+import ru.yandex.practicum.telemetry.collector.service.hub.HubEventHandler;
+import ru.yandex.practicum.telemetry.collector.service.sensor.SensorEventHandler;
 
-    @PostMapping("/sensors")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public void collectSensorEvent(@Valid @RequestBody SensorEvent event) {
-        producer.sendSensorEvent(mapper.toSensorEventAvro(event));
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Slf4j
+@GrpcService
+public class TelemetryController extends CollectorControllerGrpc.CollectorControllerImplBase {
+    private final Map<SensorEventProto.PayloadCase, SensorEventHandler> sensorEventHandlers;
+    private final Map<HubEventProto.PayloadCase, HubEventHandler> hubEventHandlers;
+
+    public TelemetryController(Set<SensorEventHandler> sensorEventHandlers,
+                               Set<HubEventHandler> hubEventHandlers) {
+
+        this.sensorEventHandlers = sensorEventHandlers.stream()
+                .collect(Collectors.toMap(
+                        SensorEventHandler::getMessageType,
+                        Function.identity()
+                ));
+
+        this.hubEventHandlers = hubEventHandlers.stream()
+                .collect(Collectors.toMap(
+                        HubEventHandler::getMessageType,
+                        Function.identity()
+                ));
     }
 
-    @PostMapping("/hubs")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public void collectHubEvent(@Valid @RequestBody HubEvent event) {
-        producer.sendHubEvent(mapper.toHubEventAvro(event));
+    @Override
+    public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
+        SensorEventProto.PayloadCase eventType = request.getPayloadCase();
+
+        try {
+            SensorEventHandler handler = sensorEventHandlers.get(eventType);
+
+            if (handler == null) {
+                throw new IllegalArgumentException("Не могу найти обработчик для события хаба: " + eventType);
+            }
+            handler.handle(request);
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(new StatusRuntimeException(Status.fromThrowable(e)));
+        }
+    }
+
+    @Override
+    public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
+        HubEventProto.PayloadCase eventType = request.getPayloadCase();
+
+        try {
+            HubEventHandler handler = hubEventHandlers.get(eventType);
+
+            if (handler == null) {
+                throw new IllegalArgumentException("Не могу найти обработчик для события хаба: " + eventType);
+            }
+            handler.handle(request);
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(new StatusRuntimeException(Status.fromThrowable(e)));
+        }
     }
 }
