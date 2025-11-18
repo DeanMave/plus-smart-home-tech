@@ -45,7 +45,7 @@ public interface AvroMapper {
                 return proto.getIntValue();
             case VALUE_NOT_SET:
             default:
-                return null; // Если ничего не установлено, возвращаем null (что корректно для Avro Union)
+                return null;
         }
     }
 
