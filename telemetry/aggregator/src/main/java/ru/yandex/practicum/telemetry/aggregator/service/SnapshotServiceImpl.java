@@ -29,27 +29,25 @@ public class SnapshotServiceImpl implements SnapshotService {
         );
         Map<String, SensorStateAvro> sensorsState = snapshot.getSensorsState();
 
-        if (sensorsState.containsKey(event.getId())) {
-            SensorStateAvro oldState = sensorsState.get(event.getId());
-
-            if (!event.getTimestamp().isAfter(oldState.getTimestamp())) {
-                log.trace("Игнорирую событие: старое время {} не раньше нового {}", oldState.getTimestamp(), event.getTimestamp());
-                return Optional.empty();
-            }
-
-            if (oldState.getData().equals(event.getPayload())) {
-                log.trace("Игнорирую событие: данные не изменились");
-                return Optional.empty();
-            }
-        }
-
-        SensorStateAvro state = SensorStateAvro.newBuilder()
+        SensorStateAvro newState = SensorStateAvro.newBuilder()
                 .setTimestamp(event.getTimestamp())
                 .setData(event.getPayload())
                 .build();
-        sensorsState.put(event.getId(), state);
 
-        snapshot.setTimestamp(state.getTimestamp());
+        if (sensorsState.containsKey(event.getId())) {
+            SensorStateAvro oldState = sensorsState.get(event.getId());
+            if (!event.getTimestamp().isAfter(oldState.getTimestamp())) {
+                if (oldState.getData().equals(newState.getData())) {
+                    return Optional.empty();
+                }
+            }
+
+            if (oldState.getData().equals(newState.getData())) {
+                return Optional.empty();
+            }
+        }
+        sensorsState.put(event.getId(), newState);
+        snapshot.setTimestamp(newState.getTimestamp());
         return Optional.of(snapshot);
     }
 }
