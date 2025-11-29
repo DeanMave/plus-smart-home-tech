@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.analyzer.service;
+package ru.yandex.practicum.telemetry.analyzer.processor;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -8,6 +8,7 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 import ru.yandex.practicum.telemetry.analyzer.config.KafkaAnalyzerConfig;
+import ru.yandex.practicum.telemetry.analyzer.service.ScenarioService;
 
 import java.time.Duration;
 import java.util.List;

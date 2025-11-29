@@ -1,4 +1,4 @@
-package ru.yandex.practicum.telemetry.analyzer.service;
+package ru.yandex.practicum.telemetry.analyzer.processor;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.telemetry.analyzer.config.KafkaAnalyzerConfig;
+import ru.yandex.practicum.telemetry.analyzer.service.ScenarioExecutor;
 
 import java.time.Duration;
 import java.util.*;

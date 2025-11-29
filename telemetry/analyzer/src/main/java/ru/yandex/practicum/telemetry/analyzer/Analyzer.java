@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.ConfigurableApplicationContext;
-import ru.yandex.practicum.telemetry.analyzer.service.HubEventProcessor;
-import ru.yandex.practicum.telemetry.analyzer.service.SnapshotProcessor;
+import ru.yandex.practicum.telemetry.analyzer.processor.HubEventProcessor;
+import ru.yandex.practicum.telemetry.analyzer.processor.SnapshotProcessor;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
