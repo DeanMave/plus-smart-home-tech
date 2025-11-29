@@ -62,7 +62,6 @@ BEFORE INSERT ON scenario_conditions
 FOR EACH ROW
 EXECUTE FUNCTION check_hub_id();
 
--- создаём триггер, проверяющий, что «действие» связывает корректные сценарий и датчик
 CREATE OR REPLACE TRIGGER tr_bi_scenario_actions_hub_id_check
 BEFORE INSERT ON scenario_actions
 FOR EACH ROW
