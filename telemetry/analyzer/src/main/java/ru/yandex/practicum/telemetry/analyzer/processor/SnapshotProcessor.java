@@ -8,10 +8,10 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.telemetry.analyzer.config.KafkaAnalyzerConfig;
 import ru.yandex.practicum.telemetry.analyzer.service.ScenarioExecutor;
+import ru.yandex.practicum.telemetry.analyzer.service.SnapshotService;
 
 import java.time.Duration;
 import java.util.*;
@@ -26,8 +26,10 @@ public class SnapshotProcessor implements Runnable {
     private final List<String> topics;
     private final Duration pollTimeout;
     private final ScenarioExecutor scenarioExecutor;
+    private final SnapshotService snapshotService;
 
-    public SnapshotProcessor(KafkaAnalyzerConfig config, ScenarioExecutor scenarioExecutor) {
+    public SnapshotProcessor(KafkaAnalyzerConfig config, ScenarioExecutor scenarioExecutor, SnapshotService snapshotService) {
+        this.snapshotService = snapshotService;
 
         String consumerType = this.getClass().getSimpleName();
 
@@ -97,9 +99,8 @@ public class SnapshotProcessor implements Runnable {
         }
     }
 
-    @Transactional(readOnly = true)
     private void processRecord(SensorsSnapshotAvro snapshot) {
-        scenarioExecutor.executeScenarios(snapshot);
+        snapshotService.processSnapshot(snapshot, scenarioExecutor);
     }
 
     private void updateOffsets(ConsumerRecord<String, SensorsSnapshotAvro> record) {
