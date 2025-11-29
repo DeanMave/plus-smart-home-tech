@@ -17,11 +17,8 @@ import java.util.Map;
 @Service
 public class ActionSender {
 
-    private final HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient;
-
-    public ActionSender(@GrpcClient("HubRouterController") HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient) {
-        this.hubRouterClient = hubRouterClient;
-    }
+    @GrpcClient("hub-router")
+    private HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient;
 
     public void sendAction(String hubId, String scenarioName, Map<String, Action> actions) {
         Instant now = Instant.now();
@@ -52,8 +49,9 @@ public class ActionSender {
             try {
                 log.info("Отправка команды хабу {} для сценария '{}', устройство: {}",
                         hubId, scenarioName, sensorId);
-                // RPC вызов
+
                 hubRouterClient.handleDeviceAction(request);
+
             } catch (Exception e) {
                 log.error("Ошибка при отправке хабу {} действия {} для устройства {}",
                         hubId, action.getType(), sensorId, e);

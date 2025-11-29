@@ -29,8 +29,8 @@ logging:
 
 grpc:
   client:
-    HubRouterController:
-      address: 'static://localhost:59090'
+    hub-router:
+      address: "static://localhost:59090"
       enableKeepAlive: true
       keepAliveWithoutCalls: true
       negotiationType: plaintext
