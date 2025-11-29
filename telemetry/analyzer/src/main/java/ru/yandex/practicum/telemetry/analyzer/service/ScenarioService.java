@@ -142,8 +142,8 @@ public class ScenarioService {
         if (value == null) {
             return null;
         }
-        if (value instanceof Integer) {
-            return (Integer) value;
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
         }
         if (value instanceof Boolean) {
             return ((Boolean) value) ? 1 : 0;
