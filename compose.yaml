@@ -36,9 +36,10 @@ services:
 
   analyzer-db:
     image: postgres:16.1
+    hostname: analyzer-db
     container_name: analyzer-postgres-db
     ports:
-      - "5432:5432"
+      - "5432:5432" # для локального подключения клиента (Analyzer)
     environment:
       - POSTGRES_DB=analyzer
       - POSTGRES_USER=db
@@ -61,17 +62,9 @@ services:
       - |
         set -e
         echo "Waiting for PostgreSQL to be ready..."
-        # Подключаемся к стандартной БД postgres
-        until psql postgresql://db:db@analyzer-db:5432/postgres -c '\q'; do
+        # Подключаемся к базе данных 'analyzer' (она создается автоматически POSTGRES_DB=analyzer)
+        until psql postgresql://db:db@analyzer-db:5432/analyzer -c '\q'; do
           sleep 1
         done
-        echo "Creating databases..."
-        psql postgresql://db:db@analyzer-db:5432/postgres -v ON_ERROR_STOP=1 <<-EOSQL
-        create database commerce_shopping_cart;
-        create database commerce_shopping_store;
-        create database commerce_warehouse;
-        create database commerce_order;
-        create database commerce_delivery;
-        create database commerce_payment;
-        EOSQL
-        echo "All databases created successfully!"
+        echo "Analyzer database is ready. If needed, other databases can be created here."
+        echo "Initialization complete!"

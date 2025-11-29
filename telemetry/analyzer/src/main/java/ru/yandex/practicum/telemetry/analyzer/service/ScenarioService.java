@@ -57,12 +57,23 @@ public class ScenarioService {
     public void handleScenarioRemoved(String hubId, ScenarioRemovedEventAvro event) {
         String scenarioName = event.getName();
 
-        Optional<Scenario> scenario = scenarioRepository.findByHubIdAndName(hubId, scenarioName);
-        if (scenario.isPresent()) {
-            scenarioRepository.delete(scenario.get());
-            log.info("Удален сценарий '{}' для хаба {}", scenarioName, hubId);
+        Optional<Scenario> scenarioOptional = scenarioRepository.findByHubIdAndName(hubId, scenarioName);
+
+        if (scenarioOptional.isPresent()) {
+            Scenario scenario = scenarioOptional.get();
+
+            if (!scenario.getConditions().isEmpty()) {
+                scenario.getConditions().values().forEach(conditionRepository::delete);
+            }
+
+            if (!scenario.getActions().isEmpty()) {
+                scenario.getActions().values().forEach(actionRepository::delete);
+            }
+
+            scenarioRepository.delete(scenario);
+            log.info("Удален сценарий '{}' для хаба {}. Очищены связанные условия и действия.", scenarioName, hubId);
         } else {
-            log.warn("Сценарий '{}' для хаба {} не найден.", scenarioName, hubId);
+            log.warn("Сценарий '{}' для хаба {} не найден. Удаление не требуется.", scenarioName, hubId);
         }
     }
 
@@ -73,7 +84,20 @@ public class ScenarioService {
 
         if (existing.isPresent()) {
             log.info("Сценарий '{}' для хаба {} уже существует, удаляем старую версию перед сохранением.", scenarioName, hubId);
-            scenarioRepository.delete(existing.get());
+
+            Scenario oldScenario = existing.get();
+
+            if (!oldScenario.getConditions().isEmpty()) {
+                oldScenario.getConditions().values().forEach(conditionRepository::delete);
+                log.debug("Удалено {} старых условий для сценария '{}'.", oldScenario.getConditions().size(), scenarioName);
+            }
+
+            if (!oldScenario.getActions().isEmpty()) {
+                oldScenario.getActions().values().forEach(actionRepository::delete);
+                log.debug("Удалено {} старых действий для сценария '{}'.", oldScenario.getActions().size(), scenarioName);
+            }
+
+            scenarioRepository.delete(oldScenario);
         }
 
         Scenario scenario = new Scenario();
