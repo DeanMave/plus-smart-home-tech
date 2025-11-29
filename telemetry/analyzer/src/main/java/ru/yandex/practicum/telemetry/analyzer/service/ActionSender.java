@@ -19,7 +19,7 @@ public class ActionSender {
 
     private final HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient;
 
-    public ActionSender(@GrpcClient("hub-router") HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient) {
+    public ActionSender(@GrpcClient("HubRouterController") HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterClient) {
         this.hubRouterClient = hubRouterClient;
     }
 
