@@ -2,7 +2,6 @@ package ru.yandex.practicum.telemetry.analyzer.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 import ru.yandex.practicum.telemetry.analyzer.entity.Condition;
 import ru.yandex.practicum.telemetry.analyzer.entity.Scenario;
@@ -28,7 +27,6 @@ public class ScenarioExecutor {
         this.valueExtractor = valueExtractor;
     }
 
-    @Transactional
     public void executeScenarios(SensorsSnapshotAvro snapshot) {
         String hubId = snapshot.getHubId();
 

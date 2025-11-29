@@ -22,10 +22,9 @@ spring:
 
 logging:
   level:
-    ru.yandex.practicum.telemetry: TRACE
+    ru.yandex.practicum.telemetry: DEBUG
     org:
-      springframework: ERROR
-      springframework.cloud.netflix.eureka: INFO
+      springframework: WARN
       apache.kafka: WARN
 
 grpc:

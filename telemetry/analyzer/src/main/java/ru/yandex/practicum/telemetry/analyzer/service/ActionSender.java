@@ -8,7 +8,6 @@ import ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto;
 import ru.yandex.practicum.grpc.telemetry.event.DeviceActionRequest;
 import ru.yandex.practicum.grpc.telemetry.hubrouter.HubRouterControllerGrpc;
 import com.google.protobuf.Timestamp;
-import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 import ru.yandex.practicum.telemetry.analyzer.entity.Action;
 
 import java.time.Instant;
@@ -39,7 +38,7 @@ public class ActionSender {
                     .setSensorId(sensorId)
                     .setType(ActionTypeProto.valueOf(action.getType().name()));
 
-            if (action.getType().equals(ActionTypeAvro.SET_VALUE)) {
+            if (action.getValue() != null) {
                 actionBuilder.setValue(action.getValue());
             }
 
