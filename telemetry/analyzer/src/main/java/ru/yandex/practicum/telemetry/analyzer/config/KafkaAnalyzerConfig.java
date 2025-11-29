@@ -1,54 +1,49 @@
 package ru.yandex.practicum.telemetry.analyzer.config;
 
-import lombok.Data;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-@Data
-@Component
+@Getter
 @ConfigurationProperties(prefix = "analyzer.kafka")
 public class KafkaAnalyzerConfig {
 
-    private Map<String, Object> commonProperties = new HashMap<>();
-    private List<ConsumerConfigItem> consumers;
+    private final Map<String, ConsumerConfig> consumers;
 
-    public Properties getConsumerProperties(String consumerType) {
-        ConsumerConfigItem configItem = consumers.stream()
-                .filter(c -> consumerType.equals(c.getType()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Consumer config not found for type: " + consumerType));
-
-        Properties props = new Properties();
-        props.putAll(commonProperties);
-        props.putAll(configItem.getProperties());
-
-        if (!props.containsKey(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)) {
-            props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                    "org.apache.kafka.common.serialization.StringDeserializer");
-        }
-
-        return props;
+    public KafkaAnalyzerConfig(Map<String, String> commonProperties, List<ConsumerConfig> consumers) {
+        this.consumers = consumers.stream()
+                .peek( config -> {
+                            Properties mergedProps = new Properties();
+                            mergedProps.putAll(commonProperties);
+                            mergedProps.putAll(config.getProperties());
+                            config.setProperties(mergedProps);
+                        }
+                )
+                .collect(Collectors.toMap(ConsumerConfig::getType, Function.identity()));
     }
 
-    public ConsumerConfigItem getConsumerConfig(String consumerType) {
-        return consumers.stream()
-                .filter(c -> consumerType.equals(c.getType()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Consumer config not found for type: " + consumerType));
-    }
-
-    @Data
-    public static class ConsumerConfigItem {
+    @Setter
+    @Getter
+    public static class ConsumerConfig {
         private String type;
-        private Map<String, Object> properties = new HashMap<>();
         private List<String> topics;
         private Duration pollTimeout;
+        private Properties properties;
+
+        public ConsumerConfig(String type, List<String> topics, Duration pollTimeout, Map<String, String> properties) {
+            this.type = type;
+            this.topics = topics;
+            this.pollTimeout = pollTimeout;
+
+            this.properties = new Properties(properties.size());
+            this.properties.putAll(properties);
+        }
     }
 }

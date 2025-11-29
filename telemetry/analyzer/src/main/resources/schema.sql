@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS conditions (
     value INTEGER
 );
 
+-- создаём таблицу actions
 CREATE TABLE IF NOT EXISTS actions (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     type VARCHAR,

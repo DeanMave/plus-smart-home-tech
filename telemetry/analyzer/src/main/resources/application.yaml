@@ -22,15 +22,16 @@ spring:
 
 logging:
   level:
-    ru.yandex.practicum.telemetry: DEBUG
+    ru.yandex.practicum.telemetry: TRACE
     org:
-      springframework: WARN
+      springframework: ERROR
+      springframework.cloud.netflix.eureka: INFO
       apache.kafka: WARN
 
 grpc:
   client:
     hub-router:
-      address: "static://localhost:59090"
+      address: 'static://localhost:59090'
       enableKeepAlive: true
       keepAliveWithoutCalls: true
       negotiationType: plaintext
