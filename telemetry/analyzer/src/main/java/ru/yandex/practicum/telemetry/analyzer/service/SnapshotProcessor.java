@@ -8,6 +8,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.telemetry.analyzer.config.KafkaAnalyzerConfig;
 
@@ -36,6 +37,7 @@ public class SnapshotProcessor implements Runnable {
         this.pollTimeout = consumerConfig.getPollTimeout();
         this.scenarioExecutor = scenarioExecutor;
 
+
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("Сработал хук на завершение JVM. Прерываю работу консьюмера SnapshotProcessor.");
             consumer.wakeup();
@@ -63,7 +65,7 @@ public class SnapshotProcessor implements Runnable {
                     log.trace("Обработка снапшота хаба {} из партиции {} с офсетом {}.",
                             record.key(), record.partition(), record.offset());
 
-                    scenarioExecutor.executeScenarios(record.value());
+                    processRecord(record.value());
 
                     updateOffsets(record);
                 }
@@ -92,6 +94,11 @@ public class SnapshotProcessor implements Runnable {
                 consumer.close();
             }
         }
+    }
+
+    @Transactional(readOnly = true)
+    private void processRecord(SensorsSnapshotAvro snapshot) {
+        scenarioExecutor.executeScenarios(snapshot);
     }
 
     private void updateOffsets(ConsumerRecord<String, SensorsSnapshotAvro> record) {

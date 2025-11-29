@@ -2,6 +2,7 @@ package ru.yandex.practicum.telemetry.analyzer.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.*;
 import ru.yandex.practicum.telemetry.analyzer.entity.Condition;
 import ru.yandex.practicum.telemetry.analyzer.entity.Scenario;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 @Slf4j
 @Service
+@Transactional(readOnly = true)
 public class ScenarioExecutor {
 
     private final ScenarioRepository scenarioRepository;
