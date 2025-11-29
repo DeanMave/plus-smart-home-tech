@@ -16,7 +16,7 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 import java.util.Properties;
 
 @Service
-public class TelemetryKafkaProducer {
+public class    TelemetryKafkaProducer {
     private KafkaProducer<String, SpecificRecordBase> producer;
 
     @Value("${kafka.topic.hub}")

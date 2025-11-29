@@ -36,10 +36,9 @@ services:
 
   analyzer-db:
     image: postgres:16.1
-    hostname: analyzer-db
     container_name: analyzer-postgres-db
     ports:
-      - "5432:5432" # для локального подключения клиента (Analyzer)
+      - "5432:5432"
     environment:
       - POSTGRES_DB=analyzer
       - POSTGRES_USER=db
@@ -49,22 +48,3 @@ services:
       timeout: 5s
       interval: 5s
       retries: 10
-
-  db-init:
-    image: postgres:16.1
-    container_name: db-init
-    depends_on:
-      analyzer-db:
-        condition: service_healthy
-    entrypoint:
-      - bash
-      - -c
-      - |
-        set -e
-        echo "Waiting for PostgreSQL to be ready..."
-        # Подключаемся к базе данных 'analyzer' (она создается автоматически POSTGRES_DB=analyzer)
-        until psql postgresql://db:db@analyzer-db:5432/analyzer -c '\q'; do
-          sleep 1
-        done
-        echo "Analyzer database is ready. If needed, other databases can be created here."
-        echo "Initialization complete!"
