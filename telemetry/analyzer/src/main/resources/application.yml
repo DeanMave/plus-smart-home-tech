@@ -7,6 +7,9 @@ spring:
         format_sql: TRUE
         jdbc:
           time_zone: UTC
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
     show-sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 

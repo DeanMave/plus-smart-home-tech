@@ -14,10 +14,8 @@ import ru.yandex.practicum.telemetry.analyzer.repository.ConditionRepository;
 import ru.yandex.practicum.telemetry.analyzer.repository.ScenarioRepository;
 import ru.yandex.practicum.telemetry.analyzer.repository.SensorRepository;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -54,7 +52,7 @@ public class ScenarioService {
     }
 
     @Transactional
-    public void removeScenario (String hubId, ScenarioRemovedEventAvro scenarioRemovedEvent) {
+    public void removeScenario(String hubId, ScenarioRemovedEventAvro scenarioRemovedEvent) {
         log.info("Попытка удаления сценария '{}' для Hub ID: {}", scenarioRemovedEvent.getName(), hubId);
 
         Optional<Scenario> scenario = scenarioRepository.findByHubIdAndName(hubId, scenarioRemovedEvent.getName());
@@ -105,11 +103,17 @@ public class ScenarioService {
 
 
     private Map<String, Condition> mapAndSaveConditions(String hubId, List<ScenarioConditionAvro> conditionsAvro) {
-        Map<String, Condition> conditions = new HashMap<>();
+        List<String> sensorIds = conditionsAvro.stream().map(ScenarioConditionAvro::getSensorId).toList();
+        List<Sensor> foundSensors = sensorRepository.findByHubIdAndIdIn(hubId, sensorIds);
+        Map<String, Sensor> sensorLookup = foundSensors.stream()
+                .collect(Collectors.toMap(Sensor::getId, sensor -> sensor));
+
+        Map<Condition, String> conditionToSensorIdMap = new LinkedHashMap<>();
+        List<Condition> conditionsToSave = new ArrayList<>();
 
         for (ScenarioConditionAvro conditionAvro : conditionsAvro) {
-            Optional<Sensor> sensor = sensorRepository.findByIdAndHubId(conditionAvro.getSensorId(), hubId);
-            if (sensor.isEmpty()) {
+            String currentSensorId = conditionAvro.getSensorId();
+            if (sensorLookup.get(currentSensorId) == null) {
                 log.warn("Сенсор {} для Hub {} не найден. Условие пропущено.", conditionAvro.getSensorId(), hubId);
                 continue;
             }
@@ -121,19 +125,40 @@ public class ScenarioService {
             Integer value = extractValue(conditionAvro.getValue());
             condition.setValue(value);
 
-            Condition savedCondition = conditionRepository.save(condition);
-            conditions.put(conditionAvro.getSensorId(), savedCondition);
+            conditionsToSave.add(condition);
+            conditionToSensorIdMap.put(condition, currentSensorId);
         }
 
-        return conditions;
+        List<Condition> savedConditions = conditionRepository.saveAll(conditionsToSave);
+
+        Map<String, Condition> resultConditions = new HashMap<>();
+
+        for (Condition savedCondition : savedConditions) {
+            String sensorId = conditionToSensorIdMap.get(savedCondition);
+
+            if (sensorId != null) {
+                resultConditions.put(sensorId, savedCondition);
+            } else {
+                log.error("Сохраненный Condition не найден во временной Map. Ошибка логики.");
+            }
+        }
+
+        return resultConditions;
     }
 
     private Map<String, Action> mapAndSaveActions(String hubId, List<DeviceActionAvro> actionsAvro) {
-        Map<String, Action> actions = new HashMap<>();
+        List<String> sensorIds = actionsAvro.stream().map(DeviceActionAvro::getSensorId).toList();
+        List<Sensor> foundSensors = sensorRepository.findByHubIdAndIdIn(hubId, sensorIds);
+        Map<String, Sensor> sensorLookup = foundSensors.stream()
+                .collect(Collectors.toMap(Sensor::getId, sensor -> sensor));
+
+        // 1. Временные структуры
+        List<Action> actionsToSave = new ArrayList<>();
+        Map<Action, String> actionToSensorIdMap = new LinkedHashMap<>();
 
         for (DeviceActionAvro actionAvro : actionsAvro) {
-            Optional<Sensor> sensor = sensorRepository.findByIdAndHubId(actionAvro.getSensorId(), hubId);
-            if (sensor.isEmpty()) {
+            String currentSensorId = actionAvro.getSensorId();
+            if (sensorLookup.get(currentSensorId) == null) {
                 log.warn("Сенсор {} для Hub {} не найден. Действие пропущено.", actionAvro.getSensorId(), hubId);
                 continue;
             }
@@ -144,11 +169,25 @@ public class ScenarioService {
             Integer value = extractValue(actionAvro.getValue());
             action.setValue(value);
 
-            Action savedAction = actionRepository.save(action);
-            actions.put(actionAvro.getSensorId(), savedAction);
+            actionsToSave.add(action);
+            actionToSensorIdMap.put(action, currentSensorId);
         }
 
-        return actions;
+        List<Action> savedActions = actionRepository.saveAll(actionsToSave);
+
+        Map<String, Action> resultActions = new HashMap<>();
+
+        for (Action savedAction : savedActions) {
+            String sensorId = actionToSensorIdMap.get(savedAction);
+
+            if (sensorId != null) {
+                resultActions.put(sensorId, savedAction);
+            } else {
+                log.error("Сохраненный Action не найден в временной Map. Ошибка сопоставления.");
+            }
+        }
+
+        return resultActions;
     }
 
     private Integer extractValue(Object value) {

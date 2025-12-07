@@ -8,7 +8,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.telemetry.analyzer.config.KafkaConsumerConfig;
 import ru.yandex.practicum.telemetry.analyzer.model.Scenario;
@@ -87,7 +86,6 @@ public class SnapshotProcessor {
         }
     }
 
-    @Transactional
     private void handleRecord(SensorsSnapshotAvro sensorsSnapshotAvro) {
         try {
             String hubId = sensorsSnapshotAvro.getHubId();

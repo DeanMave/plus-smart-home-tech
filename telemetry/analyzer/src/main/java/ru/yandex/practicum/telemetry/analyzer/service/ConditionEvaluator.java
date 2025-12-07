@@ -20,6 +20,7 @@ import java.util.Map;
 public class ConditionEvaluator {
     private final ScenarioRepository scenarioRepository;
 
+    @Transactional(readOnly = true)
     public List<Scenario> evaluateSnapshot(String hubId, SensorsSnapshotAvro sensorsSnapshotAvro) {
         List<Scenario> allScenarios = scenarioRepository.findByHubId(hubId);
         List<Scenario> triggeredScenarios = new ArrayList<>();

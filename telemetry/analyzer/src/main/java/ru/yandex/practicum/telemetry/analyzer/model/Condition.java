@@ -12,7 +12,12 @@ import ru.yandex.practicum.kafka.telemetry.event.ConditionTypeAvro;
 @Table(name = "conditions")
 public class Condition {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "condition_generator")
+    @SequenceGenerator(
+            name = "condition_generator",
+            sequenceName = "conditions_seq",
+            allocationSize = 50
+    )
     private Long id;
 
     @Enumerated(EnumType.STRING)
