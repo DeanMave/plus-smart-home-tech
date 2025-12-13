@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  jackson:
+    time-zone: UTC
+
+logging:
+  level:
+    root: INFO
+    ru.yandex.practicum: DEBUG
+    org.apache.kafka: INFO
+
+kafka:
+  bootstrap-servers: localhost:9092
+  producer:
+    acks: all
+    retries: 3
+    max-in-flight-requests-per-connection: 1
+    linger-ms: 10
+    batch-size: 16384
+  topic:
+    hub: telemetry.hubs.v1
+    sensor: telemetry.sensors.v1
+
+grpc:
+  server:
+    port: 59091
