@@ -1,81 +1,84 @@
 package ru.yandex.practicum.telemetry.collector.service.mapper;
 
+import org.apache.avro.specific.SpecificRecordBase;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import ru.yandex.practicum.telemetry.collector.model.hub.*;
-import ru.yandex.practicum.telemetry.collector.model.sensor.*;
+import org.mapstruct.MappingConstants;
+import org.mapstruct.ValueMapping;
+import ru.yandex.practicum.grpc.telemetry.event.*;
 import ru.yandex.practicum.kafka.telemetry.event.*;
+import com.google.protobuf.Timestamp;
+
+import java.time.Instant;
 
 @Mapper(componentModel = "spring")
 public interface AvroMapper {
 
-    @Mapping(source = "hubEvent", target = "payload")
-    HubEventAvro toHubEventAvro(HubEvent hubEvent);
+    @ValueMapping(source = "UNRECOGNIZED", target = MappingConstants.NULL)
+    DeviceTypeAvro toDeviceTypeAvro(DeviceTypeProto protoType);
 
-    @Mapping(source = "sensorEvent", target = "payload")
-    SensorEventAvro toSensorEventAvro(SensorEvent sensorEvent);
+    @ValueMapping(source = "UNRECOGNIZED", target = MappingConstants.NULL)
+    ConditionTypeAvro toConditionTypeAvro(ConditionTypeProto proto);
 
+    @ValueMapping(source = "UNRECOGNIZED", target = MappingConstants.NULL)
+    ConditionOperationAvro toConditionOperationAvro(ConditionOperationProto proto);
 
-    default Object mapPayload(HubEvent hubEvent) {
-        if (hubEvent instanceof DeviceAddedEvent) {
-            return toDeviceAddedEventAvro((DeviceAddedEvent) hubEvent);
+    @ValueMapping(source = "UNRECOGNIZED", target = MappingConstants.NULL)
+    ActionTypeAvro toActionTypeAvro(ActionTypeProto proto);
+
+    @Mapping(target = "type", source = "type")
+    DeviceAddedEventAvro toDeviceAddedEventAvro(DeviceAddedEventProto deviceAddedEvent);
+
+    DeviceRemovedEventAvro toDeviceRemovedEventAvro(DeviceRemovedEventProto deviceRemovedEvent);
+
+    @Mapping(source = "conditionList", target = "conditions")
+    @Mapping(source = "actionList", target = "actions")
+    ScenarioAddedEventAvro toScenarioAddedEventAvro(ScenarioAddedEventProto scenarioAddedEvent);
+
+    ScenarioRemovedEventAvro toScenarioRemovedEventAvro(ScenarioRemovedEventProto scenarioRemovedEvent);
+
+    default Object mapScenarioConditionValue(ScenarioConditionProto proto) {
+        switch (proto.getValueCase()) {
+            case BOOL_VALUE:
+                return proto.getBoolValue();
+            case INT_VALUE:
+                return proto.getIntValue();
+            case VALUE_NOT_SET:
+            default:
+                return null;
         }
-        if (hubEvent instanceof DeviceRemovedEvent) {
-            return toDeviceRemovedEventAvro((DeviceRemovedEvent) hubEvent);
-        }
-        if (hubEvent instanceof ScenarioAddedEvent) {
-            return toScenarioAddedEventAvro((ScenarioAddedEvent) hubEvent);
-        }
-        if (hubEvent instanceof ScenarioRemovedEvent) {
-            return toScenarioRemovedEventAvro((ScenarioRemovedEvent) hubEvent);
-        }
-        return null;
     }
 
-    default Object mapPayload(SensorEvent sensorEvent) {
-        if (sensorEvent instanceof ClimateSensorEvent) {
-            return toClimateSensorAvro((ClimateSensorEvent) sensorEvent);
+    @Mapping(target = "value", source = "proto")
+    ScenarioConditionAvro toScenarioConditionAvro(ScenarioConditionProto proto);
+
+    DeviceActionAvro toDeviceActionAvro(DeviceActionProto deviceAction);
+
+    TemperatureSensorAvro toCompleteTemperatureSensorAvro(TemperatureSensorProto sensorEvent);
+
+    ClimateSensorAvro toClimateSensorAvro(ClimateSensorProto climateSensorEvent);
+
+    LightSensorAvro toLightSensorAvro(LightSensorProto lightSensorEvent);
+
+    MotionSensorAvro toMotionSensorAvro(MotionSensorProto motionSensorEvent);
+
+    SwitchSensorAvro toSwitchSensorAvro(SwitchSensorProto switchSensorEvent);
+
+    default Instant mapTimestamp(Timestamp timestamp) {
+        if (timestamp == null) {
+            return null;
         }
-        if (sensorEvent instanceof LightSensorEvent) {
-            return toLightSensorAvro((LightSensorEvent) sensorEvent);
-        }
-        if (sensorEvent instanceof MotionSensorEvent) {
-            return toMotionSensorAvro((MotionSensorEvent) sensorEvent);
-        }
-        if (sensorEvent instanceof SwitchSensorEvent) {
-            return toSwitchSensorAvro((SwitchSensorEvent) sensorEvent);
-        }
-        if (sensorEvent instanceof TemperatureSensorEvent) {
-            return toCompleteTemperatureSensorAvro((TemperatureSensorEvent) sensorEvent);
-        }
-        return null;
+        return Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
     }
 
-    @Mapping(target = "type", source = "deviceType")
-    DeviceAddedEventAvro toDeviceAddedEventAvro(DeviceAddedEvent deviceAddedEvent);
+    @Mapping(target = "timestamp", source = "event.timestamp")
+    @Mapping(target = "id", source = "event.id")
+    @Mapping(target = "hubId", source = "event.hubId")
+    @Mapping(target = "payload", source = "payload")
+    SensorEventAvro toSensorEventAvroContainer(SensorEventProto event, SpecificRecordBase payload);
 
-    DeviceRemovedEventAvro toDeviceRemovedEventAvro(DeviceRemovedEvent deviceRemovedEvent);
-
-    ScenarioAddedEventAvro toScenarioAddedEventAvro(ScenarioAddedEvent scenarioAddedEvent);
-
-    ScenarioRemovedEventAvro toScenarioRemovedEventAvro(ScenarioRemovedEvent scenarioRemovedEvent);
-
-    ScenarioConditionAvro toScenarioConditionAvro(ScenarioCondition scenarioCondition);
-
-    DeviceActionAvro toDeviceActionAvro(DeviceAction deviceAction);
-
-    @Mapping(source = "id", target = "id")
-    @Mapping(source = "hubId", target = "hubId")
-    @Mapping(source = "timestamp", target = "timestamp")
-    @Mapping(source = "temperatureC", target = "temperatureC")
-    @Mapping(source = "temperatureF", target = "temperatureF")
-    TemperatureSensorAvro toCompleteTemperatureSensorAvro(TemperatureSensorEvent sensorEvent);
-
-    ClimateSensorAvro toClimateSensorAvro(ClimateSensorEvent climateSensorEvent);
-
-    LightSensorAvro toLightSensorAvro(LightSensorEvent lightSensorEvent);
-
-    MotionSensorAvro toMotionSensorAvro(MotionSensorEvent motionSensorEvent);
-
-    SwitchSensorAvro toSwitchSensorAvro(SwitchSensorEvent switchSensorEvent);
+    @Mapping(target = "timestamp", source = "event.timestamp")
+    @Mapping(target = "hubId", source = "event.hubId")
+    @Mapping(target = "payload", source = "payload")
+    HubEventAvro toHubEventAvroContainer(HubEventProto event, SpecificRecordBase payload);
 }
