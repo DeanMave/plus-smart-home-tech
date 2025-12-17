@@ -8,9 +8,11 @@ spring:
       server:
         native:
           searchLocations:
-            - classpath:config/telemetry/{application}
+            - classpath:config/commerce/{application}
+            - classpath:config/infra/{application}
+
 server:
-  port: 0
+  port: 8888
 
 eureka:
   client:
