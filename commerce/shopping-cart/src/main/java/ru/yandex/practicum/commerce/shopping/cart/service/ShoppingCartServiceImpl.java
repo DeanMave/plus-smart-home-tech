@@ -13,7 +13,6 @@ import ru.yandex.practicum.commerce.shopping.cart.mapper.ShoppingCartMapper;
 import ru.yandex.practicum.commerce.shopping.cart.model.ShoppingCartEntity;
 import ru.yandex.practicum.commerce.shopping.cart.model.ShoppingCartItemEntity;
 import ru.yandex.practicum.commerce.shopping.cart.model.ShoppingCartState;
-import ru.yandex.practicum.commerce.shopping.cart.repository.ShoppingCartItemRepository;
 import ru.yandex.practicum.commerce.shopping.cart.repository.ShoppingCartRepository;
 
 import java.util.*;
@@ -27,29 +26,23 @@ import java.util.stream.Collectors;
 public class ShoppingCartServiceImpl implements ShoppingCartService {
 
     private final ShoppingCartRepository shoppingCartRepository;
-    private final ShoppingCartItemRepository shoppingCartItemRepository;
     private final WarehouseClient warehouseClient;
     private final ShoppingCartMapper shoppingCartMapper;
 
     @Override
     public ShoppingCartDto getShoppingCart(String username) {
         validateUsername(username);
-        log.debug("Получение корзины пользователя: {}", username);
-
-        ShoppingCartEntity shoppingCart = getOrCreateActiveCart(username);
-        List<ShoppingCartItemEntity> items = shoppingCartItemRepository
-                .findByShoppingCart_ShoppingCartId(shoppingCart.getShoppingCartId());
-
-        return shoppingCartMapper.toDto(shoppingCart, items);
+        ShoppingCartEntity shoppingCart = getOrCreateActiveCartWithItems(username);
+        return shoppingCartMapper.toDto(shoppingCart, shoppingCart.getItems());
     }
 
     @Override
     @Transactional
     public ShoppingCartDto addProductToShoppingCart(String username, Map<UUID, Integer> productsToAdd) {
         validateUsername(username);
-        log.debug("Добавление товаров в корзину для: {}, товары: {}", username, productsToAdd);
+        log.debug("Добавление товаров для: {}, список: {}", username, productsToAdd);
 
-        ShoppingCartEntity shoppingCart = getOrCreateActiveCart(username);
+        ShoppingCartEntity shoppingCart = getOrCreateActiveCartWithItems(username);
 
         ShoppingCartDto checkRequest = ShoppingCartDto.builder()
                 .shoppingCartId(shoppingCart.getShoppingCartId())
@@ -58,19 +51,12 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 
         try {
             warehouseClient.checkProductQuantityEnoughForShoppingCart(checkRequest);
-            log.debug("Склад подтвердил наличие товаров");
         } catch (Exception e) {
-            log.error("Ошибка при проверке наличия на складе: {}", e.getMessage());
+            log.error("Склад отклонил запрос: {}", e.getMessage());
             throw e;
         }
 
-        List<ShoppingCartItemEntity> existingItems = shoppingCartItemRepository
-                .findByShoppingCart_ShoppingCartIdAndProductIdIn(
-                        shoppingCart.getShoppingCartId(),
-                        new ArrayList<>(productsToAdd.keySet())
-                );
-
-        Map<UUID, ShoppingCartItemEntity> existingItemsMap = existingItems.stream()
+        Map<UUID, ShoppingCartItemEntity> existingItemsMap = shoppingCart.getItems().stream()
                 .collect(Collectors.toMap(ShoppingCartItemEntity::getProductId, Function.identity()));
 
         for (Map.Entry<UUID, Integer> entry : productsToAdd.entrySet()) {
@@ -80,18 +66,21 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
             if (existingItemsMap.containsKey(productId)) {
                 ShoppingCartItemEntity item = existingItemsMap.get(productId);
                 item.setQuantity(item.getQuantity() + quantityToAdd);
-                log.debug("Обновлено количество для товара {} в корзине", productId);
+                log.debug("Обновлено количество товара {} (+{})", productId, quantityToAdd);
             } else {
-                ShoppingCartItemEntity newItem = shoppingCartMapper.toNewItemEntity(shoppingCart, productId, quantityToAdd);
-                shoppingCartItemRepository.save(newItem);
-                log.debug("Добавлен новый товар {} в корзину", productId);
+                ShoppingCartItemEntity newItem = new ShoppingCartItemEntity();
+                newItem.setProductId(productId);
+                newItem.setQuantity(quantityToAdd);
+
+                shoppingCart.addItem(newItem);
+
+                log.debug("Добавлен новый товар {}", productId);
             }
         }
 
-        List<ShoppingCartItemEntity> allItems = shoppingCartItemRepository
-                .findByShoppingCart_ShoppingCartId(shoppingCart.getShoppingCartId());
+        shoppingCartRepository.save(shoppingCart);
 
-        return shoppingCartMapper.toDto(shoppingCart, allItems);
+        return shoppingCartMapper.toDto(shoppingCart, shoppingCart.getItems());
     }
 
     @Override
@@ -114,55 +103,47 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     @Transactional
     public ShoppingCartDto removeFromShoppingCart(String username, List<UUID> productIds) {
         validateUsername(username);
-        log.debug("Удаление товаров из корзины пользователя: {}, ID товаров: {}", username, productIds);
+        log.debug("Удаление товаров из корзины пользователя: {}", username);
 
-        ShoppingCartEntity shoppingCart = getActiveCartOrThrow(username);
+        ShoppingCartEntity shoppingCart = getOrCreateActiveCartWithItems(username);
 
-        List<ShoppingCartItemEntity> itemsInCart = shoppingCartItemRepository
-                .findByShoppingCart_ShoppingCartIdAndProductIdIn(shoppingCart.getShoppingCartId(), productIds);
+        Set<UUID> productIdsInCart = shoppingCart.getItems().stream()
+                .map(ShoppingCartItemEntity::getProductId)
+                .collect(Collectors.toSet());
 
-        if (itemsInCart.size() < productIds.size()) {
-            Set<UUID> foundIds = itemsInCart.stream()
-                    .map(ShoppingCartItemEntity::getProductId)
-                    .collect(Collectors.toSet());
+        List<UUID> missingIds = productIds.stream()
+                .filter(id -> !productIdsInCart.contains(id))
+                .collect(Collectors.toList());
 
-            List<UUID> missingIds = productIds.stream()
-                    .filter(id -> !foundIds.contains(id))
-                    .collect(Collectors.toList());
-
+        if (!missingIds.isEmpty()) {
             throw new NoProductsInShoppingCartBusinessException(missingIds);
         }
 
-        shoppingCartItemRepository.deleteByShoppingCartIdAndProductIds(shoppingCart.getShoppingCartId(), productIds);
-        log.debug("Удалено {} товаров из корзины пользователя {}", productIds.size(), username);
+        shoppingCart.getItems().removeIf(item -> productIds.contains(item.getProductId()));
+        log.debug("Удалено {} товаров", productIds.size());
 
-        List<ShoppingCartItemEntity> remainingItems = shoppingCartItemRepository
-                .findByShoppingCart_ShoppingCartId(shoppingCart.getShoppingCartId());
+        shoppingCartRepository.save(shoppingCart);
 
-        return shoppingCartMapper.toDto(shoppingCart, remainingItems);
+        return shoppingCartMapper.toDto(shoppingCart, shoppingCart.getItems());
     }
 
     @Override
     @Transactional
     public ShoppingCartDto changeProductQuantity(String username, ChangeProductQuantityRequest request) {
         validateUsername(username);
-        log.debug("Изменение количества товара в корзине для {}: {}", username, request);
 
-        ShoppingCartEntity shoppingCart = getActiveCartOrThrow(username);
+        ShoppingCartEntity shoppingCart = getOrCreateActiveCartWithItems(username);
 
-        ShoppingCartItemEntity item = shoppingCartItemRepository
-                .findByShoppingCart_ShoppingCartIdAndProductId(shoppingCart.getShoppingCartId(), request.getProductId())
+        ShoppingCartItemEntity item = shoppingCart.getItems().stream()
+                .filter(i -> i.getProductId().equals(request.getProductId()))
+                .findFirst()
                 .orElseThrow(() -> new NoProductsInShoppingCartBusinessException(List.of(request.getProductId())));
 
         item.setQuantity(request.getNewQuantity().intValue());
-        shoppingCartItemRepository.save(item);
 
-        log.debug("Количество товара {} изменено на {}", request.getProductId(), request.getNewQuantity());
+        shoppingCartRepository.save(shoppingCart);
 
-        List<ShoppingCartItemEntity> updatedItems = shoppingCartItemRepository
-                .findByShoppingCart_ShoppingCartId(shoppingCart.getShoppingCartId());
-
-        return shoppingCartMapper.toDto(shoppingCart, updatedItems);
+        return shoppingCartMapper.toDto(shoppingCart, shoppingCart.getItems());
     }
 
     private void validateUsername(String username) {
@@ -172,19 +153,12 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         }
     }
 
-    private ShoppingCartEntity getOrCreateActiveCart(String username) {
-        return shoppingCartRepository.findActiveCartByUsername(username)
+    private ShoppingCartEntity getOrCreateActiveCartWithItems(String username) {
+        return shoppingCartRepository.findByUsernameWithItems(username)
                 .orElseGet(() -> {
-                    log.info("Создание новой активной корзины для пользователя: {}", username);
-                    return shoppingCartRepository.save(shoppingCartMapper.toNewEntity(username));
-                });
-    }
-
-    private ShoppingCartEntity getActiveCartOrThrow(String username) {
-        return shoppingCartRepository.findActiveCartByUsername(username)
-                .orElseThrow(() -> {
-                    log.warn("Активная корзина не найдена для пользователя: {}", username);
-                    return new NotAuthorizedBusinessException("Активная корзина не найдена для пользователя: " + username);
+                    ShoppingCartEntity newCart = new ShoppingCartEntity();
+                    newCart.setUsername(username);
+                    return shoppingCartRepository.save(newCart);
                 });
     }
 }

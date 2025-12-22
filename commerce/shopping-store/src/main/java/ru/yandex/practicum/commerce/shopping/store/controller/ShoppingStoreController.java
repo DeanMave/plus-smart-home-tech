@@ -3,7 +3,6 @@ package ru.yandex.practicum.commerce.shopping.store.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.contract.shopping.store.ShoppingStoreOperations;
 import ru.yandex.practicum.commerce.dto.shopping.store.ProductCategory;
@@ -19,7 +18,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/shopping-store")
 @RequiredArgsConstructor
-@Validated
 public class ShoppingStoreController implements ShoppingStoreOperations {
 
     private final ShoppingStoreService shoppingStoreService;

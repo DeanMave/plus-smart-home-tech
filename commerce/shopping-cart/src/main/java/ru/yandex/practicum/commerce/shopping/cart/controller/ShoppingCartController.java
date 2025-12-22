@@ -2,7 +2,6 @@ package ru.yandex.practicum.commerce.shopping.cart.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.contract.shopping.cart.ShoppingCartOperations;
 import ru.yandex.practicum.commerce.dto.shopping.cart.ChangeProductQuantityRequest;
@@ -17,7 +16,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/shopping-cart")
 @RequiredArgsConstructor
-@Validated
 public class ShoppingCartController implements ShoppingCartOperations {
 
     private final ShoppingCartService shoppingCartService;

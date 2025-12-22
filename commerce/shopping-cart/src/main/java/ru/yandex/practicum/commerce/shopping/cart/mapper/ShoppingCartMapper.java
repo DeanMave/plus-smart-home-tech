@@ -29,13 +29,4 @@ public interface ShoppingCartMapper {
                         ShoppingCartItemEntity::getQuantity
                 ));
     }
-
-    @Mapping(target = "cartState", constant = "ACTIVE")
-    ShoppingCartEntity toNewEntity(String username);
-
-    @Mapping(target = "cartItemId", ignore = true)
-    @Mapping(target = "shoppingCart", source = "shoppingCart")
-    @Mapping(target = "productId", source = "productId")
-    @Mapping(target = "quantity", source = "quantity")
-    ShoppingCartItemEntity toNewItemEntity(ShoppingCartEntity shoppingCart, UUID productId, Integer quantity);
 }

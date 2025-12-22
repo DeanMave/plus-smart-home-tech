@@ -2,7 +2,6 @@ package ru.yandex.practicum.commerce.warehouse.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.commerce.contract.warehouse.WarehouseOperations;
 import ru.yandex.practicum.commerce.dto.shopping.cart.ShoppingCartDto;
@@ -16,7 +15,6 @@ import ru.yandex.practicum.commerce.warehouse.service.WarehouseService;
 @RestController
 @RequestMapping("/api/v1/warehouse")
 @RequiredArgsConstructor
-@Validated
 public class WarehouseController implements WarehouseOperations {
 
     private final WarehouseService warehouseService;

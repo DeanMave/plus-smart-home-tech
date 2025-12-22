@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -33,6 +35,14 @@ public class ShoppingCartEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "shoppingCart", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ShoppingCartItemEntity> items = new ArrayList<>();
+
+    public void addItem(ShoppingCartItemEntity item) {
+        items.add(item);
+        item.setShoppingCart(this);
+    }
 
     @PrePersist
     protected void onCreate() {
