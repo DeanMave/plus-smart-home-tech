@@ -1,0 +1,60 @@
+package ru.yandex.practicum.commerce.shopping.cart.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Entity
+@Table(name = "shopping_carts")
+@Setter
+@Getter
+@EqualsAndHashCode(of = {"shoppingCartId"})
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ShoppingCartEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "shopping_cart_id")
+    private UUID shoppingCartId;
+
+    @Column(name = "username", nullable = false, length = 100)
+    private String username;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cart_state", nullable = false)
+    private ShoppingCartState cartState;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "shoppingCart", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ShoppingCartItemEntity> items = new ArrayList<>();
+
+    public void addItem(ShoppingCartItemEntity item) {
+        items.add(item);
+        item.setShoppingCart(this);
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (cartState == null) {
+            cartState = ShoppingCartState.ACTIVE;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}
