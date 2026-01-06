@@ -1,0 +1,10 @@
+package ru.yandex.practicum.commerce.dto.delivery.exception;
+
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import ru.yandex.practicum.commerce.dto.exception.AbstractErrorResponse;
+
+@SuperBuilder
+@NoArgsConstructor
+public class NoDeliveryFoundException extends AbstractErrorResponse {
+}

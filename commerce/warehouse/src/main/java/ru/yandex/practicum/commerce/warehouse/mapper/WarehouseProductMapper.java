@@ -16,5 +16,4 @@ public interface WarehouseProductMapper {
     WarehouseProductEntity toEntity(NewProductInWarehouseRequest request);
 
     DimensionDto toDimensionDto(WarehouseProductEntity entity);
-
 }
