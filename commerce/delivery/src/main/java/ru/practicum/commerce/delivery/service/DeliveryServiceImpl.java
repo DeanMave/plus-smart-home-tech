@@ -60,7 +60,8 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Override
     @Transactional
     public BigDecimal calculateDeliveryCost(OrderDto orderDto) {
-        log.info("Расчет стоимости доставки для заказа: {}", orderDto.getOrderId());
+        UUID orderId = orderDto.getOrderId();
+        log.info("[Заказ: {}] Начало расчёта стоимости доставки", orderId);
 
         AddressDto warehouseAddressDto;
         try {
@@ -74,10 +75,11 @@ public class DeliveryServiceImpl implements DeliveryService {
         String deliveryStreet = getDeliveryStreetFromDatabase(orderDto.getOrderId());
 
         BigDecimal cost = calculateDeliveryCostAlgorithm(
+                orderId,
                 warehouseAddressDto.getStreet(),
-                orderDto.getDeliveryWeight() != null ? orderDto.getDeliveryWeight() : 0.0,
-                orderDto.getDeliveryVolume() != null ? orderDto.getDeliveryVolume() : 0.0,
-                orderDto.getFragile() != null ? orderDto.getFragile() : false,
+                orderDto.getDeliveryWeight(),
+                orderDto.getDeliveryVolume(),
+                orderDto.getFragile(),
                 deliveryStreet
         );
 
@@ -183,44 +185,53 @@ public class DeliveryServiceImpl implements DeliveryService {
         }
     }
 
-    private BigDecimal calculateDeliveryCostAlgorithm(String warehouseAddress,
+    private BigDecimal calculateDeliveryCostAlgorithm(UUID orderId,
+                                                      String warehouseAddress,
                                                       Double weight,
                                                       Double volume,
                                                       Boolean fragile,
                                                       String deliveryStreet) {
+        log.debug("[Заказ: {}] Входные данные алгоритма: вес={}, объём={}, хрупкость={}, адрес={}",
+                orderId, weight, volume, fragile, deliveryStreet);
+
         BigDecimal cost = BASE_COST;
 
-        BigDecimal addressMultiplier;
-        if (warehouseAddress != null && warehouseAddress.contains("ADDRESS_1")) {
-            addressMultiplier = BigDecimal.ONE;
-        } else if (warehouseAddress != null && warehouseAddress.contains("ADDRESS_2")) {
-            addressMultiplier = new BigDecimal("2");
-        } else {
-            addressMultiplier = BigDecimal.ONE;
+        BigDecimal addressMultiplier = BigDecimal.ONE;
+        if (warehouseAddress != null) {
+            if (warehouseAddress.contains("ADDRESS_1")) {
+                addressMultiplier = BigDecimal.ONE;
+            } else if (warehouseAddress.contains("ADDRESS_2")) {
+                addressMultiplier = new BigDecimal("2");
+            }
         }
-
         cost = cost.multiply(addressMultiplier).add(BASE_COST);
+        log.debug("[Заказ: {}] База + складской множитель ({}). Промежуточный итог: {}", orderId, addressMultiplier, cost);
 
         if (Boolean.TRUE.equals(fragile)) {
             BigDecimal fragileCost = cost.multiply(FRAGILE_MULTIPLIER);
             cost = cost.add(fragileCost);
+            log.debug("[Заказ: {}] Наценка за хрупкость (+{}). Промежуточный итог: {}", orderId, fragileCost, cost);
         }
 
-        if (weight != null) {
+        if (weight != null && weight > 0) {
             BigDecimal weightCost = BigDecimal.valueOf(weight).multiply(WEIGHT_MULTIPLIER);
             cost = cost.add(weightCost);
+            log.debug("[Заказ: {}] Наценка за вес {} кг (+{}). Промежуточный итог: {}", orderId, weight, weightCost, cost);
         }
 
-        if (volume != null) {
+        if (volume != null && volume > 0) {
             BigDecimal volumeCost = BigDecimal.valueOf(volume).multiply(VOLUME_MULTIPLIER);
             cost = cost.add(volumeCost);
+            log.debug("[Заказ: {}] Наценка за объём {} м3 (+{}). Промежуточный итог: {}", orderId, volume, volumeCost, cost);
         }
 
         if (deliveryStreet != null && !deliveryStreet.isEmpty() && !deliveryStreet.equals(warehouseAddress)) {
             BigDecimal addressCost = cost.multiply(ADDRESS_MULTIPLIER);
             cost = cost.add(addressCost);
+            log.debug("[Заказ: {}] Наценка за удалённость (+{}). Итоговый расчёт: {}", orderId, addressCost, cost);
         }
 
+        log.info("[Заказ: {}] Расчёт завершён. Итоговая сумма: {}", orderId, cost);
         return cost;
     }
 
